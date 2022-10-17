@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Power 4</title>
+    <style>
+      #playButton {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: orange;
+        padding: 1rem;
+        border-radius: 1rem;
+        border: none;
+        font-size: 2rem;
+        transition: 0.2s ease;
+        cursor: pointer;
+      }
+      #playButton:hover {
+        transform: translate(-50%, -50%) scale(1.3);
+      }
+    </style>
+  </head>
+  <body>
+    <button id="playButton" onclick="playPower4()">▶ Play</button>
+    <script type="text/javascript">
+      /* * * * * *
+       * Power 4 *
+       * * * * * */
+      const SYMBOLS = [".", "o", "x"]; // empty, player1, player2
+      let grid;
+
+      function displayGrid(grid) {
+        let str = "";
+        for (let i = grid.height - 1; i >= 0; i--) {
+          for (let j = 0; j < grid.width; j++) {
+            str += SYMBOLS[grid[j][i] ?? 0];
+          }
+          str += "\n";
+        }
+        console.debug(str);
+      }
+
+      function initGrid(width = 7, height = 6) {
+        /*
+                Representation of a grid
+                ------------------------
+                grid = { width, height, 0: [], 1: [], 2: [], ... }
+
+                where width and height are the size of the grid
+                and 0, 1, 2, ... up to width-1 are the columns.
+                Each column contains the pawn of the players,
+                represented by the id of the player (1 or 2).
+                */
+        const grid = { width, height };
+        for (let j = 0; j <= width; ++j) {
+          grid[j] = [];
+        }
+
+        return grid;
+      }
+
+      function checkForVerticalWin(grid, player, nbPawnsToWin) {
+        let rowCounter = 1;
+        for (let j = 0; j < grid.width; j++) {
+          for (let i = 0; i < grid.height; i++) {
+            if (grid[j][i] === grid[j][i + 1] && grid[j][i] === player)
+              rowCounter++;
+            else rowCounter = 1;
+
+            if (rowCounter === nbPawnsToWin) return true;
+          }
+          rowCounter = 1;
+        }
+      }
+
+      function checkForHorizontalWin(grid, player, nbPawnsToWin) {
+        let lineCounter = 1;
+        for (let i = 0; i < grid.height; i++) {
+          for (let j = 0; j < grid.width; j++) {
+            if (grid[j][i] === grid[j + 1][i] && grid[j][i] === player)
+              lineCounter++;
+            else lineCounter = 1;
+
+            if (lineCounter === nbPawnsToWin) return true;
+          }
+          lineCounter = 1;
+        }
+      }
+
+      function checkForTopRightDiagonalWin(grid, player, nbPawnsToWin) {
+        let lineCounter = 1;
+        for (let j = 0; j <= grid.width - nbPawnsToWin; j++) {
+          for (let i = 0; i <= grid.height - nbPawnsToWin; i++) {
+            if (grid[j][i] === player && grid[j + 1][i + 1] === player)
+              lineCounter++;
+            else lineCounter = 1;
+
+            if (lineCounter === nbPawnsToWin) return true;
+          }
+        }
+      }
+
+      function checkForTopLeftDiagonalWin(grid, player, nbPawnsToWin) {
+        let lineCounter = 1;
+        for (let j = grid.width - 1; j >= nbPawnsToWin - 1; j--) {
+          for (let i = 0; i <= grid.height - nbPawnsToWin; i++) {
+            if (grid[j][i] === player && grid[j - 1][i + 1] === player)
+              lineCounter++;
+            else lineCounter = 1;
+
+            if (lineCounter === nbPawnsToWin) return true;
+          }
+        }
+      }
+
+      function checkForWin(grid, player, nbPawnsToWin) {
+        if (
+          checkForVerticalWin(grid, player, nbPawnsToWin) ||
+          checkForHorizontalWin(grid, player, nbPawnsToWin) ||
+          checkForTopRightDiagonalWin(grid, player, nbPawnsToWin) ||
+          checkForTopLeftDiagonalWin(grid, player, nbPawnsToWin)
+        )
+          return true;
+      }
+
+      function getComputerMove(grid, player = 2) {
+        let column;
+        playMove(grid, 1, player)
+        return column;
+      }
+
+      function getPlayerMove(grid, player = 1) {
+        let column;
+        const input = prompt(`Enter a number between 1 and ${grid.width}`);
+        column = input - 1;
+        if (isValidMove(grid, column)) playMove(grid, column, player);
+        else getPlayerMove(grid, (player = 1));
+        return column;
+      }
+
+      function playPower4(width = 7, height = 6, nbPawnsToWin = 4) {
+        if (grid === undefined) grid = initGrid(width, height);
+        getPlayerMove(grid);
+        if (
+          checkForWin(grid, 1, nbPawnsToWin) ||
+          checkForWin(grid, 2, nbPawnsToWin)
+        )
+          return console.debug("win");
+        getComputerMove(grid)
+        displayGrid(grid);
+
+        return playPower4();
+      }
+
+      /* * * * *
+       * Utils *
+       * * * * */
+      function randomInt(N) {
+        return Math.floor(Math.random() * N);
+      }
+
+      function isValidMove(grid, column) {
+        const notaNumber = /^\d/.test(column) ? true : false;
+
+        return notaNumber;
+      }
+
+      function playMove(grid, column, player) {
+        grid[column].push(player);
+      }
+
+      function generateRandomGrid(grid, N) {
+        const freeColumns = [];
+        for (let j = 0; j < grid.width; j++) freeColumns.push(j);
+
+        for (let n = 0; n < N; n++) {
+          const index = randomInt(freeColumns.length);
+          const column = freeColumns[index];
+          grid[column].push((n % 2) + 1);
+          if (grid[column] >= grid.height) freeColumns.splice(index, 1);
+        }
+      }
+    </script>
+  </body>
+</html>
